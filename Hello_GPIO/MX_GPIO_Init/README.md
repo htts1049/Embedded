@@ -1,8 +1,8 @@
 
 # MX_GPIO_init
-* MX_GPIO_Init 함수를 분석해보자
+* MX_GPIO_Init 함수의 PC13을 제어하는 부분을 분석해보자
 <br></br>
-![image_2](https://user-images.githubusercontent.com/130421694/234282537-82c1207b-3f42-435a-9fbe-ca9217f6a6c9.png)
+![image](https://user-images.githubusercontent.com/130421694/234641477-d5c40c8d-455a-47e1-a991-c8b8d14aaaf4.png)
 
 <br></br>
 ___
@@ -26,7 +26,7 @@ ___
 * 레지스터에 비트를 SET하는 함수   
 ![image](https://user-images.githubusercontent.com/130421694/234304921-6b4bea77-7371-4977-a3af-5dcaf3c2829e.png)
     * 먼저 RCC->APB2ENR 값을 확인해보자
-    * RCC 레지스터의 offset 값은 0x4002 1000
+    * RCC 레지스터의 offset 값은 0x4002 1000 이고 레지스터의 주소값은 4byte씩 늘어나므로 각 변수의 값은 4씩 늘어난다
     * APB2ENR 레지스터는 0x18을 더해주면 된다
     * __RCC->APB2ENR = 40021018__
     <br></br>
@@ -39,8 +39,8 @@ ___
 <br></br>
 <br></br>   
 ___
-### iii. SET_BIT 의 의미
-  → *(40021018) |= 16
+### iii. SET_BIT 의 의미   
+  → *(40021018) |= ( 1 << 4 )
   * 이 SET_BIT 함수의 의미를 데이터 시트를 보며 이해해보자   
 <br></br>
 ![image](https://user-images.githubusercontent.com/130421694/234303169-7a862ee3-5a68-4f41-8b53-864f04bfaf62.png)
@@ -97,39 +97,41 @@ ___
 <br></br>
 ___
 ### ii. if 조건문
+![image](https://user-images.githubusercontent.com/130421694/234636799-869b62f0-b590-43f6-bde1-970953205cdf.png)
 ![image](https://user-images.githubusercontent.com/130421694/234311691-8c1920a3-cac7-4f2e-a838-4f46035b8241.png)
 * PinState 값이 1이면 GPIOx->BSRR 가 가리키는 곳에 GPIO_Pin 값을 대입
 * PinState 값이 0이면 GPIOx->BSRR 가 가리키는 곳에 GPIO_Pin 값을 왼쪽으로 비트 시프트 16번 해서 대입
 <br></br>
-* 일단 GPIO_LED_GPIO_Port 는 GPIOC인데, GPIOC의 값은 무엇인지 확인해보자
-<br></br>
-![image](https://user-images.githubusercontent.com/130421694/234314539-a65a4210-fc0a-4e34-9be4-f0897a3729ee.png)
+* 아래 세 값은 스위치와 LED를 다룰 때 이미 확인했다
 * __GPIO_LED_GPIO_Port = GPIOC = 0x40011000__   
   GPIO_LED_GPIO_Port 의 값은 0x40011000 이다
-  
 * __GPIO_LED_Pin = 8192 = *(0x10000000000000) ( 14번째 비트 )__   
   → 1 << 13
 * __GPIO_PIN_SET = 1__
 <br></br>
-* 사실 위의 세 값은 스위치와 LED를 다룰 때 이미 확인했다
-
-<br></br>
 <br></br>
 ___
-### iii. HAL_GPIO_WritePin 함수의 의미
+### iii. HAL_GPIO_WritePin 함수의 의미   
+  → *0x40011010 = 1 << 13
 * HAL_GPIO_WritePin 함수의 의미를 데이터 시트를 보며 확인해보자
 <br></br>
 ![image](https://user-images.githubusercontent.com/130421694/234320757-7171b163-2b81-4de7-9ebb-363b13a3a8a0.png)
-* ODR 비트는 BSRR의 비트 값을 SW적으로 바꾸는 것 외에는 읽기/쓰기가 안됨
+<br></br>
+* ODR 레지스터의 비트는 SW에서 읽고 쓸 수 있고, Word 모드에서만 접근할 수 있다
+* 각각의 비트를 바꾸는 것은 BSRR의 비트 값을 바꾸는 것을 통해 가능하다
 <br></br>
 <br></br>
 ![image](https://user-images.githubusercontent.com/130421694/234318070-115f72b7-500b-4b9c-b098-014d79dd0520.png)
-* __GPIOC의 BS13을 1로 설정한 것__
-  → PC13의 LED가 켜짐
 <br></br>
-
+* HAL_GPIO_WritePin 함수의 의미는 다음과 같다
+* __GPIOC의 BS13을 1로 설정한 것__ ( 나머지 비트는 0으로 설정함 )   
+  → ODR13을 1로 설정   
+  → PC13의 LED가 켜짐
+* 식으로 보면 *0x40011010 = 1<<13 와 같다
+<br></br>
+<br></br>
 ![image](https://user-images.githubusercontent.com/130421694/234319201-0b7d27fa-3c3d-4745-9d3c-64fa61a2b862.png)
-
+<br></br>
 
 * 보통 GPIO 제어할 때 값이 111 ... 111 이면 모든 LED가 켜있는 거고 원하는 비트만 0으로 바꾸는 식으로 제어하지만   
   이 경우는 특이한 경우
@@ -167,7 +169,7 @@ ___
 <br></br>
 ___
 
-### v. HAL_GPIO_Init(GPIO_LED_GPIO_Port, &GPIO_InitStruct)
+## 4. HAL_GPIO_Init(GPIO_LED_GPIO_Port, &GPIO_InitStruct)
 * 코드가 길기 때문에 필요한 부분만 짚고 넘어가자
 <br></br>
 ![image](https://user-images.githubusercontent.com/130421694/234599961-28dee60a-5c16-4223-acbb-ab3dcc04fbd6.png)
@@ -193,22 +195,24 @@ ___
 * 선택한 레지스터에 따른 offset 값도 구한다
 * HAL_GPIO_Init 함수로 들어올 때, GPIOx는 GPIOC ( = 0x4001 0000 )를 전달 받았고   
   사진을 첨부하진 않았지만 GPIO_TypeDef 구조체에서 1,2번째 변수가 각각 CRL, CRH 이다   
-  → GPIOx->CRH = *0x4001 0004 가 된다
+  → GPIOx->CRH = *0x4001 0004 가 된다   
   __configregister = *0x4001 0004__
 <br></br>  
 * position == 13 이기에 if 조건문 내부로 들어왔었음을 기억하자   
   __registeroffset = (13-8) << 2 = 20__
 <br></br>
 <br></br>
-
-  #### MODIFY_REG
+___
+  ### i. MODIFY_REG
+  ![image](https://user-images.githubusercontent.com/130421694/234637256-9ffe4c55-e08f-4075-ad7c-cefcc4286ded.png)   
   * MODIFY_REG 함수는 위에서 구한 config, configregister, registeroffset 을 가지고 어떤 것을 한다는 것을 볼 수 있다
 ![image](https://user-images.githubusercontent.com/130421694/234345230-be1f9bf6-86d1-4047-9b54-9d168be3dc28.png)
   * 먼저 결과적으로는 __REG = (REG & ~CLEARMASK) | SETMASK__ 와 같다
   * 이 연산을 이해하려면 비트 마스킹을 알아야 한다
 <br></br>
 <br></br>
-  #### 비트 마스킹
+___
+  ### ii. 비트 마스킹
   ![image](https://user-images.githubusercontent.com/130421694/234572058-0f2c29d3-98d4-48c8-b23a-4d583f16ff05.png)
   * 2진수 10011011 를 밑에서 5번째 비트만 0으로 바꾸고 싶다면 어떻게 해야할까?   
   <br></br>
@@ -228,19 +232,26 @@ ___
   * 이 개념을 가지고 MODIFY_REG 함수를 다시 보면   
     이 함수는 REG에 들어있는 값의 CLEARMASK에 해당하는 비트를 0으로 바꿔준 뒤   
     다시 SETMASK에 해당하는 비트를 1로 바꿔준 값을 REG가 가리키는 곳에 저장한다는 것을 알 수 있다
+    
+  * MODIFY_REG(REG, CLEARMASK, SETMASK)    
+    → REG = (REG & ~CLEARMASK) | SETMASK  
+<br></br>
+___
+  ### iii. (GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset ( = CLEARMASK )
+    
+  * 비트 마스킹을 알았으니 MODIFY_REG 함수에 집어넣은 인자 중 구하지 않은 것을 따져보자    
+  ![image](https://user-images.githubusercontent.com/130421694/234347337-144f9e92-21a2-4ca1-b321-dfd51e828b40.png)
   
-
-![image](https://user-images.githubusercontent.com/130421694/234347337-144f9e92-21a2-4ca1-b321-dfd51e828b40.png)
-* 비트 마스킹을 알았으니 MODIFY_REG 함수에 집어넣은 인자 중 구하지 않은 것을 따져보자   
-<br></br>
-  ##### (GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset
-  * GPIO_CRL_MODE0 = 3 ( = 0x11 )임을 이미 위에서 확인했다   
-    GPIO_CRL_CNF0 = 3 << 2 = 12 ( 0x1100 )   
-    → (GPIO_CRL_MODE0 | GPIO_CRL_CNF0) = 0x11 | 0x1100 = 0x1111   
-    → 이것을 다시 registeroffset = 20 만큼 왼쪽으로 비트 시프트 한 값이므로    
-    → __CLEARMASK = 1111 0000 0000 0000 0000 0000 ( 밑에서 21~24 번째 비트가 1 )__
-<br></br>
-  ##### config << registeroffset = 11 << 20    
+  * GPIO_CRL_MODE0 = 3 (= 0x11)라는 것은 이미 GPIO_SPEED_FREQ_HIGH 를 확인할 때 알게 되었다   
+  <br></br>
+  * GPIO_CRL_CNF0 = 3 << 2 = 12 (= 0x1100)   
+  
+  * 따라서 구하고자 하는 __(GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset__ 은 다음과 같다   
+  → ( 0x11 | 0x1100 ) << 20   ( registeroffset = 20 임을 위에서 구했다 )
+  → __CLEARMASK = 1111 0000 0000 0000 0000 0000 ( 밑에서 21~24 번째 비트가 1 )__
+  <br></br>
+___
+  ### iv. config << registeroffset = 11 << 20 ( = SETMASK )
   __→ SETMASK = 11 0000 0000 0000 0000 0000 ( 밑에서 21번째, 22번째 비트가 1 )__
 <br></br>
 * 따라서 MODIFY_REG 함수는 configregister가 가리키는 값의 21~24번째 비트를 0으로 바꿔준 뒤, 다시 21, 22번째 비트를 1로 바꿔준 것이다
@@ -251,16 +262,25 @@ ___
 <br></br>
 <br></br>
 ___
-### vi. HAL_GPIO_Init 의 의미
+### v. HAL_GPIO_Init 의 의미   
+  → *0x40011004 = (*0x40011004 & ~(15UL << 20U)) | (3U << 20U);
 * 함수 밖에서 생성한 GPIO_InitTypeDef 구조체를 하나 받아온다
 * 받아온 구조체의 값에 따라서 CRH 레지스터 값을 변경해준다
-![image](https://user-images.githubusercontent.com/130421694/234614700-56520978-42f7-4ca7-8700-aab6b30e7b42.png)
+* PC13을 Input이 아닌 Output으로 사용하기 때문에 Pull 값인 Pulldown 은 사용하지 않았다
+![image](https://user-images.githubusercontent.com/130421694/234621536-32b12444-469e-48cc-b3e1-36fd4881faa2.png)
 <br></br>
 <br></br>
 ___
-### vii. Configure GPIO pin 의 의미
-* GPIO의 핀, 모드, 풀업/풀다운, 클럭속도를 넣어준다
-* 설정한 4가지 값을 가지고 HAL_GPIO_Init 함수를 통해 실제로 CRH 레지스터 값을 변경한다
-* 핀 번호가 0~7 사이에 있었다면 CRL 레지스터를 변경한다
+## 5. MX_GPIO_Init 정리
+  1. __HAL_RCC_GPIOC_CLK_ENABLE() 함수에서 원하는 포트에 따라 RCC_APB2ENR 레지스터 값을 변경하여 포트의 클럭을 활성화한다   
+  <br></br>
+  2. HAL_GPIO_WritePin 함수에서 원하는 포트, 핀에 따라 GPIOx_BSRR 레지스터 값을 변경하여 LED 상태를 초기화한다   
+  <br></br>
+  3. 주석으로 Configure GPIO pin 라고 되어있는 부분에서 GPIO_InitTypeDef 구조체를 하나 생성하고 원하는 값을 넣어준다
+  <br></br>
+  4. 3번에서 생성한 GPIO_InitTypeDef 구조체를 원하는 포트에 따라서 CRL 혹은 CRH 레지스터 값을 변경한다   
+     실질적으로 GPIO 포트, 핀, 모드, 속도 등을 설정하는 작업은 여기서 이뤄진다   
+    → 0 ~ 7번 핀은 GPIOx_CRL 레지스터     
+    → 8 ~ 15번 핀은 GPIOx_CRH 레지스터
 
   
