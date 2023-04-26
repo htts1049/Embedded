@@ -237,7 +237,7 @@ ___
     → REG = (REG & ~CLEARMASK) | SETMASK  
 <br></br>
 ___
-  ### iii. (GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset ( = CLEARMASK )
+  ### iii. CLEARMASK - (GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset
     
   * 비트 마스킹을 알았으니 MODIFY_REG 함수에 집어넣은 인자 중 구하지 않은 것을 따져보자    
   ![image](https://user-images.githubusercontent.com/130421694/234347337-144f9e92-21a2-4ca1-b321-dfd51e828b40.png)
@@ -247,11 +247,12 @@ ___
   * GPIO_CRL_CNF0 = 3 << 2 = 12 (= 0x1100)   
   
   * 따라서 구하고자 하는 __(GPIO_CRL_MODE0 | GPIO_CRL_CNF0) << registeroffset__ 은 다음과 같다   
-  → ( 0x11 | 0x1100 ) << 20   ( registeroffset = 20 임을 위에서 구했다 )
+  → ( 0x11 | 0x1100 ) << 20   ( registeroffset = 20 임을 위에서 구했다 )   
   → __CLEARMASK = 1111 0000 0000 0000 0000 0000 ( 밑에서 21~24 번째 비트가 1 )__
   <br></br>
 ___
-  ### iv. config << registeroffset = 11 << 20 ( = SETMASK )
+  ### iv. SETMASK - config << registeroffset
+    → 0x11 << 20
   __→ SETMASK = 11 0000 0000 0000 0000 0000 ( 밑에서 21번째, 22번째 비트가 1 )__
 <br></br>
 * 따라서 MODIFY_REG 함수는 configregister가 가리키는 값의 21~24번째 비트를 0으로 바꿔준 뒤, 다시 21, 22번째 비트를 1로 바꿔준 것이다
