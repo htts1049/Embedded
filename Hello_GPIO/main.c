@@ -1,4 +1,3 @@
-
 #include "main.h"
 
 void SystemClock_Config(void);
@@ -6,26 +5,47 @@ static void MX_GPIO_Init(void);
 
 int main(void)
 {
-  HAL_Init();
 
-  SystemClock_Config();
-  MX_GPIO_Init();
+	/* HAL_Init() is same as below */
+	volatile unsigned int* reg = 0x40022000;
+	*reg |= 16;
+
+	SystemClock_Config();
+
+	/* MX_GPIO_Init() is same as below */
+
+	/* __HAL_RCC_GPIOC_CLK_ENABLE() is same as below */
+	volatile unsigned int* reg2 = 0x40021018;
+	*reg2 |= 16;
+
+	/*
+	  Configure GPIO pin : GPIO_LED_Pin
+  	  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  	  GPIO_InitStruct.Pin = GPIO_LED_Pin;
+  	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  	  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  	  HAL_GPIO_Init(GPIO_LED_GPIO_Port, &GPIO_InitStruct);
+
+  	  upper is same as below
+	 */
+	volatile unsigned int* reg3 = 0x40011004;
+	*reg3 = (*reg3 & ~(15UL << 20U)) | (3U << 20U);
+
+	volatile unsigned int* reg4 = 0x40011010;
 
   while (1)
   {
+	  // PC13 LED on
+	  *reg4 = 0x2000;
+	  HAL_Delay(250);
 
-	  // if switch on, LED on
-	  if(!HAL_GPIO_ReadPin(GPIO_SW_GPIO_Port, GPIO_SW_Pin)){
-		  HAL_GPIO_WritePin(GPIO_LED_GPIO_Port, GPIO_LED_Pin, 0);
-	  }
-	  else{
-		  HAL_GPIO_WritePin(GPIO_LED_GPIO_Port, GPIO_LED_Pin, 1);
-	  }
-	  HAL_Delay(100);
-
+	  // PC13 LED off
+	  *reg4 = (0x2000 << 16);
+	  HAL_Delay(250);
   }
-
 }
+
 
 void SystemClock_Config(void)
 {
@@ -64,7 +84,6 @@ static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -83,7 +102,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIO_SW_GPIO_Port, &GPIO_InitStruct);
+
 }
+
 
 void Error_Handler(void)
 {
@@ -92,6 +113,7 @@ void Error_Handler(void)
   while (1)
   {
   }
+
 }
 
 #ifdef  USE_FULL_ASSERT
@@ -100,4 +122,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
 
 }
-#endif 
+#endif /* USE_FULL_ASSERT */
