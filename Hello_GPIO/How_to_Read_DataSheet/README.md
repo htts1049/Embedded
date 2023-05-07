@@ -48,9 +48,13 @@ ___
 <br></br>
 <img src="https://user-images.githubusercontent.com/130421694/235919332-dd5a7b16-fd8d-483d-8bea-bf0410352da4.png" width="80%" height="80%"/>   
 <br></br>
-* STM 칩과 드라이버는 DI/O, CLK, STB 3개 선으로만 연결되어 있다
-* SG1/KS1 에서 나온 선이 DIG1의 A1과, DIG2의 A2에 모두 연결되어 있다
-* GR1, GR2는 각각 DIG1, DIG2에 연결되어 있다
+
+* STM 칩과 드라이버는 DI/O, CLK, STB 3개 선으로만 연결되어 있다   
+
+* SG1/KS1 에서 나온 선이 DIG1의 A1과, DIG2의 A2에 모두 연결되어 있다  
+
+* GR1, GR2는 각각 DIG1, DIG2에 연결되어 있다   
+
 * __따라서 A 자리의 LED를 키고 싶으면 SG1/KS1에 전류를 흘리고 원하는 DIG에 따라서 GND를 조절한다__
 <br></br>
 
