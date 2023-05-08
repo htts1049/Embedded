@@ -1,11 +1,12 @@
-
 #include "main.h"
+
+SPI_HandleTypeDef hspi1;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_SPI1_Init(void);
 
 
-/**
   * @brief  The application entry point.
   * @retval int
   */
@@ -17,18 +18,14 @@ int main(void)
   SystemClock_Config();
 
   MX_GPIO_Init();
-  
+  MX_SPI1_Init();
+
+  char data[10] = {'a', 'b'};
   while (1)
   {
-
-	  // PA4 ON for 1 sec
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-	  HAL_Delay(1000);
-
-	  // PA4 OFF for 1 sec
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-	  HAL_Delay(1000);
-
+	// SPI Transmit { 'a', 'b' } every 0.1s
+	  HAL_SPI_Transmit(&hspi1, data, 2, 100);
+	  HAL_Delay(100);
   }
 }
 
@@ -71,26 +68,41 @@ void SystemClock_Config(void)
 
 
 /**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIO_TEST_GPIO_Port, GPIO_TEST_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin : GPIO_TEST_Pin */
-  GPIO_InitStruct.Pin = GPIO_TEST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIO_TEST_GPIO_Port, &GPIO_InitStruct);
 }
 
 
@@ -107,6 +119,7 @@ void Error_Handler(void)
   }
 }
 
+
 #ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
@@ -120,4 +133,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 }
-#endif 
+#endif /* USE_FULL_ASSERT */
